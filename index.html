@@ -59,7 +59,6 @@
         font-weight: bold;
       }
 
-
       #close-btn {
         background-color: #ff5f57;
       }
@@ -96,7 +95,7 @@
         font-size: 14px;
         font-weight: 500;
         user-select: none;
-        font-family: 'JetBrains Mono', monospace;
+        font-family: "JetBrains Mono", monospace;
       }
 
       #canvas {
@@ -136,11 +135,50 @@
           <button class="btn" id="minimize-btn" title="Minimize"></button>
           <button class="btn" id="maximize-btn" title="Maximize"></button>
         </div>
-        <div class="titlebar-title">Canvas IO</div>
+        <div class="titlebar-title">Canvas Template</div>
       </div>
       <canvas id="canvas"></canvas>
     </div>
 
-    <script src="/src/script.ts"></script>
+    <!-- Only load canvas-related logic here -->
+    <script type="module" src="/src/canvas.ts"></script>
+
+    <!-- UI interaction logic remains here (optional: can also move to another file later) -->
+    <script>
+      document.getElementById("close-btn").addEventListener("click", () => {
+        if (confirm("Are you sure you want to close the application?")) {
+          document.body.style.opacity = "0";
+          setTimeout(() => {
+            document.body.innerHTML =
+              '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; color: white; font-family: system-ui;">Application Closed</div>';
+          }, 300);
+        }
+      });
+
+      document.getElementById("minimize-btn").addEventListener("click", () => {
+        const canvas = document.getElementById("canvas");
+        canvas.style.transform = "scale(0.1)";
+        canvas.style.transition = "transform 0.3s ease";
+        setTimeout(() => {
+          canvas.style.transform = "scale(1)";
+        }, 1000);
+      });
+
+      document.getElementById("maximize-btn").addEventListener("click", () => {
+        const frame = document.getElementById("frame");
+        if (frame.style.width === "100vw") {
+          frame.style.width = "min(90vw, 800px)";
+          frame.style.height = "min(70vh, 600px)";
+        } else {
+          frame.style.width = "100vw";
+          frame.style.height = "100vh";
+          frame.style.borderRadius = "0";
+        }
+        setTimeout(() => {
+          const resizeEvent = new Event("resize");
+          window.dispatchEvent(resizeEvent);
+        }, 100);
+      });
+    </script>
   </body>
 </html>
