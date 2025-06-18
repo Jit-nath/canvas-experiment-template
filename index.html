@@ -1,13 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + TS</title>
+    <title>Canvas Application</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        background: linear-gradient(135deg, #1f2b37, #0b1c28);
+        padding: 0;
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      #frame {
+        width: min(90vw, 800px);
+        height: min(70vh, 600px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      #titlebar {
+        height: 40px;
+        background-color: whitesmoke;
+        border-bottom: 1px solid #d0d0d0;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        position: relative;
+      }
+
+      #window-controls {
+        display: flex;
+        gap: 8px;
+        z-index: 1;
+      }
+
+      .btn {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: bold;
+      }
+
+      .btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      #close-btn {
+        background-color: #ff5f57;
+      }
+
+      #close-btn:hover::after {
+        content: "×";
+        color: #fff;
+      }
+
+      #minimize-btn {
+        background-color: #ffbd2e;
+      }
+
+      #minimize-btn:hover::after {
+        content: "−";
+        color: #fff;
+      }
+
+      #maximize-btn {
+        background-color: #28ca42;
+      }
+
+      #maximize-btn:hover::after {
+        content: "⬜";
+        color: #fff;
+        font-size: 6px;
+      }
+
+      .titlebar-title {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
+        user-select: none;
+      }
+
+      #canvas {
+        background: #000;
+        width: 100%;
+        height: calc(100% - 40px);
+        display: block;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        #frame {
+          width: 95vw;
+          height: 80vh;
+        }
+
+        .titlebar-title {
+          font-size: 12px;
+        }
+
+        #titlebar {
+          height: 36px;
+          padding: 0 12px;
+        }
+
+        #canvas {
+          height: calc(100% - 36px);
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="frame">
+      <div id="titlebar">
+        <div id="window-controls">
+          <button class="btn" id="close-btn" title="Close"></button>
+          <button class="btn" id="minimize-btn" title="Minimize"></button>
+          <button class="btn" id="maximize-btn" title="Maximize"></button>
+        </div>
+        <div class="titlebar-title">Canvas Application</div>
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <script src="/src/script.ts"></script>
   </body>
 </html>
