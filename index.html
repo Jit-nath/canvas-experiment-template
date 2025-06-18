@@ -20,6 +20,7 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
+        overflow: hidden; /* Prevent scrollbars when dragging */
       }
 
       #frame {
@@ -28,6 +29,13 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         border-radius: 12px;
         overflow: hidden;
+        position: absolute; /* Changed from relative to absolute for dragging */
+        cursor: move; /* Show move cursor */
+        user-select: none; /* Prevent text selection during drag */
+      }
+
+      #frame:active {
+        cursor: grabbing; /* Change cursor when dragging */
       }
 
       #titlebar {
@@ -106,6 +114,7 @@
         height: calc(100% - 40px);
         display: block;
         border-radius: 0px 0px 10px 10px;
+        cursor: default; /* Keep default cursor for canvas */
       }
 
       @media (max-width: 768px) {
@@ -142,11 +151,113 @@
       <canvas id="canvas"></canvas>
     </div>
 
-    <!-- Your code goes here -->
+    <!-- Your canvas code goes here -->
     <script type="module" src="/src/canvas.ts"></script>
 
     <script>
-      document.getElementById("close-btn").addEventListener("click", () => {
+      // Dragging functionality
+      let isDragging = false;
+      let dragOffset = { x: 0, y: 0 };
+      const frame = document.getElementById("frame");
+
+      // Get initial position
+      const rect = frame.getBoundingClientRect();
+      let currentX = rect.left;
+      let currentY = rect.top;
+
+      // Set initial position
+      frame.style.left = currentX + "px";
+      frame.style.top = currentY + "px";
+
+      function handleMouseDown(e) {
+        // Don't start dragging if clicking on buttons or canvas
+        if (e.target.classList.contains('btn') || e.target.id === 'canvas') {
+          return;
+        }
+
+        isDragging = true;
+        const rect = frame.getBoundingClientRect();
+        dragOffset.x = e.clientX - rect.left;
+        dragOffset.y = e.clientY - rect.top;
+        
+        frame.style.transition = 'none'; // Disable transitions during drag
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        e.preventDefault();
+      }
+
+      function handleMouseMove(e) {
+        if (!isDragging) return;
+
+        currentX = e.clientX - dragOffset.x;
+        currentY = e.clientY - dragOffset.y;
+
+        // Keep window within viewport bounds
+        const maxX = window.innerWidth - frame.offsetWidth;
+        const maxY = window.innerHeight - frame.offsetHeight;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+
+        frame.style.left = currentX + "px";
+        frame.style.top = currentY + "px";
+      }
+
+      function handleMouseUp() {
+        isDragging = false;
+        frame.style.transition = ''; // Re-enable transitions
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      }
+
+      // Touch support for mobile
+      function handleTouchStart(e) {
+        if (e.target.classList.contains('btn') || e.target.id === 'canvas') {
+          return;
+        }
+
+        isDragging = true;
+        const touch = e.touches[0];
+        const rect = frame.getBoundingClientRect();
+        dragOffset.x = touch.clientX - rect.left;
+        dragOffset.y = touch.clientY - rect.top;
+        
+        frame.style.transition = 'none';
+        e.preventDefault();
+      }
+
+      function handleTouchMove(e) {
+        if (!isDragging) return;
+
+        const touch = e.touches[0];
+        currentX = touch.clientX - dragOffset.x;
+        currentY = touch.clientY - dragOffset.y;
+
+        const maxX = window.innerWidth - frame.offsetWidth;
+        const maxY = window.innerHeight - frame.offsetHeight;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+
+        frame.style.left = currentX + "px";
+        frame.style.top = currentY + "px";
+        e.preventDefault();
+      }
+
+      function handleTouchEnd() {
+        isDragging = false;
+        frame.style.transition = '';
+      }
+
+      // Add event listeners
+      frame.addEventListener('mousedown', handleMouseDown);
+      frame.addEventListener('touchstart', handleTouchStart);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleTouchEnd);
+
+      // Window controls functionality
+      document.getElementById("close-btn").addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent dragging
         if (confirm("Are you sure you want to close the application?")) {
           document.body.style.opacity = "0";
           setTimeout(() => {
@@ -156,7 +267,8 @@
         }
       });
 
-      document.getElementById("minimize-btn").addEventListener("click", () => {
+      document.getElementById("minimize-btn").addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent dragging
         const canvas = document.getElementById("canvas");
         canvas.style.transform = "scale(0.1)";
         canvas.style.transition = "transform 0.3s ease";
@@ -165,20 +277,47 @@
         }, 1000);
       });
 
-      document.getElementById("maximize-btn").addEventListener("click", () => {
-        const frame = document.getElementById("frame");
+      document.getElementById("maximize-btn").addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent dragging
         if (frame.style.width === "100vw") {
           frame.style.width = "min(90vw, 800px)";
           frame.style.height = "min(70vh, 600px)";
+          frame.style.borderRadius = "12px";
+          // Center the window again
+          const rect = frame.getBoundingClientRect();
+          currentX = (window.innerWidth - rect.width) / 2;
+          currentY = (window.innerHeight - rect.height) / 2;
+          frame.style.left = currentX + "px";
+          frame.style.top = currentY + "px";
         } else {
           frame.style.width = "100vw";
           frame.style.height = "100vh";
           frame.style.borderRadius = "0";
+          frame.style.left = "0";
+          frame.style.top = "0";
+          currentX = 0;
+          currentY = 0;
         }
         setTimeout(() => {
           const resizeEvent = new Event("resize");
           window.dispatchEvent(resizeEvent);
         }, 100);
+      });
+
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        // Keep window within bounds on resize
+        const maxX = window.innerWidth - frame.offsetWidth;
+        const maxY = window.innerHeight - frame.offsetHeight;
+        
+        if (currentX > maxX) {
+          currentX = Math.max(0, maxX);
+          frame.style.left = currentX + "px";
+        }
+        if (currentY > maxY) {
+          currentY = Math.max(0, maxY);
+          frame.style.top = currentY + "px";
+        }
       });
     </script>
   </body>
