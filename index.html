@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -20,7 +21,9 @@
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        overflow: hidden; /* Prevent scrollbars when dragging */
+        overflow: hidden;
+        transition: background-image 0.3s ease;
+        object-fit: cover;
       }
 
       #frame {
@@ -29,13 +32,12 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         border-radius: 12px;
         overflow: hidden;
-        position: absolute; /* Changed from relative to absolute for dragging */
-        cursor: move; /* Show move cursor */
-        user-select: none; /* Prevent text selection during drag */
+        position: absolute;
+        user-select: none;
       }
 
       #frame:active {
-        cursor: grabbing; /* Change cursor when dragging */
+        cursor: grabbing;
       }
 
       #titlebar {
@@ -114,7 +116,140 @@
         height: calc(100% - 40px);
         display: block;
         border-radius: 0px 0px 10px 10px;
-        cursor: default; /* Keep default cursor for canvas */
+        cursor: default;
+      }
+
+      /* Custom Context Menu Styles */
+      .context-menu {
+        position: fixed;
+        background: rgba(0, 0, 0, 0.237);
+        backdrop-filter: blur(30px);
+        border-radius: 10px;
+        padding: 8px 2px;
+        min-width: 200px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        display: none;
+        font-size: 12px;
+      }
+
+      .context-menu-item {
+        padding: 10px 16px;
+        color: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+      }
+
+      .context-menu-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+
+      .context-menu-item.disabled {
+        color: #666;
+        cursor: not-allowed;
+      }
+
+      .context-menu-item.disabled:hover {
+        background: none;
+        color: #666;
+      }
+
+      .context-menu-separator {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 4px 0;
+      }
+
+      .context-menu-icon {
+        width: 16px;
+        height: 16px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 8px;
+      }
+
+      .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.388);
+        backdrop-filter: blur(5px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10001;
+      }
+
+      .modal-content {
+        background: #6e6e6e6e;
+        padding: 24px;
+        border-radius: 12px;
+        width: min(90vw, 400px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-title {
+        color: #e2e8f0;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+
+      .modal-input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #4a5568;
+        border-radius: 6px;
+        background: #1a202c;
+        color: #e2e8f0;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .modal-input:focus {
+        outline: none;
+        border-color: #3182ce;
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+      }
+
+      .modal-btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      .modal-btn.primary {
+        background: #3182ce;
+        color: white;
+      }
+
+      .modal-btn.primary:hover {
+        background: #2c5282;
+      }
+
+      .modal-btn.secondary {
+        background: #4a5568;
+        color: #e2e8f0;
+      }
+
+      .modal-btn.secondary:hover {
+        background: #2d3748;
       }
 
       @media (max-width: 768px) {
@@ -135,9 +270,19 @@
         #canvas {
           height: calc(100% - 36px);
         }
+
+        .context-menu {
+          min-width: 180px;
+        }
+
+        .modal-content {
+          width: 95vw;
+          padding: 20px;
+        }
       }
     </style>
   </head>
+
   <body>
     <div id="frame">
       <div id="titlebar">
@@ -151,27 +296,200 @@
       <canvas id="canvas"></canvas>
     </div>
 
-    <!-- Your canvas code goes here -->
-    <script type="module" src="/src/canvas.ts"></script>
+    <!-- Custom Context Menu -->
+    <div class="context-menu" id="contextMenu">
+      <div class="context-menu-item" id="changeBg">
+        <div class="context-menu-icon">🖼️</div>
+        <span>Change Background</span>
+      </div>
+      <div class="context-menu-item" id="removeBg">
+        <div class="context-menu-icon">🗑️</div>
+        <span>Remove Background</span>
+      </div>
+      <div class="context-menu-separator"></div>
+      <div class="context-menu-item" id="resetBg">
+        <div class="context-menu-icon">🔄</div>
+        <span>Reset to Default</span>
+      </div>
+    </div>
 
+    <!-- Modal for URL input -->
+    <div class="modal" id="urlModal">
+      <div class="modal-content">
+        <div class="modal-title">Enter Image URL</div>
+        <input type="url" class="modal-input" id="urlInput" placeholder="https://example.com/image.jpg" />
+        <div class="modal-buttons">
+          <button class="modal-btn secondary" id="cancelBtn">Cancel</button>
+          <button class="modal-btn primary" id="applyBtn">Apply</button>
+        </div>
+      </div>
+    </div>
+    <script src="/src/canvas.ts"></script>
     <script>
-      // Dragging functionality
+      let currentBackgroundImage = null;
+      const defaultBackground = "linear-gradient(135deg, #1f2b37, #0b1c28)";
+
+      // Load saved background on startup
+      const savedImageUrl = localStorage.getItem('canvasIOBackground');
+      if(savedImageUrl) {
+        currentBackgroundImage = savedImageUrl;
+        const body = document.body;
+        body.style.backgroundImage = `url('${savedImageUrl}')`;
+        body.style.backgroundSize = "cover";
+        body.style.backgroundPosition = "center";
+        body.style.backgroundRepeat = "no-repeat";
+      }
+
+      // Context menu functionality
+      const contextMenu = document.getElementById("contextMenu");
+      const urlModal = document.getElementById("urlModal");
+      const urlInput = document.getElementById("urlInput");
+      const body = document.body;
+
+      // Show context menu on right-click
+      document.addEventListener("contextmenu", (e) => {
+        // Only show custom menu when right-clicking on background (not on frame)
+        if(!document.getElementById("frame").contains(e.target)) {
+          e.preventDefault();
+
+          const x = e.clientX;
+          const y = e.clientY;
+
+          // Position menu within viewport
+          const menuRect = contextMenu.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+          const viewportHeight = window.innerHeight;
+
+          let menuX = x;
+          let menuY = y;
+
+          if(x + 200 > viewportWidth) {
+            menuX = x - 200;
+          }
+          if(y + 120 > viewportHeight) {
+            menuY = y - 120;
+          }
+
+          contextMenu.style.left = menuX + "px";
+          contextMenu.style.top = menuY + "px";
+          contextMenu.style.display = "block";
+
+          // Update remove button state
+          const removeBgBtn = document.getElementById("removeBg");
+          if(currentBackgroundImage) {
+            removeBgBtn.classList.remove("disabled");
+          } else {
+            removeBgBtn.classList.add("disabled");
+          }
+        }
+      });
+
+      // Hide context menu on click elsewhere
+      document.addEventListener("click", (e) => {
+        if(!contextMenu.contains(e.target)) {
+          contextMenu.style.display = "none";
+        }
+      });
+
+      // Change background functionality
+      document.getElementById("changeBg").addEventListener("click", () => {
+        contextMenu.style.display = "none";
+        urlModal.style.display = "flex";
+        urlInput.focus();
+
+        // Pre-fill with current image if exists
+        if(currentBackgroundImage) {
+          urlInput.value = currentBackgroundImage;
+        }
+      });
+
+      // Remove background functionality
+      document.getElementById("removeBg").addEventListener("click", () => {
+        if(currentBackgroundImage) {
+          currentBackgroundImage = null;
+          localStorage.removeItem('canvasIOBackground');
+          body.style.background = defaultBackground;
+          body.style.backgroundImage = "none";
+        }
+        contextMenu.style.display = "none";
+      });
+
+      // Reset to default background
+      document.getElementById("resetBg").addEventListener("click", () => {
+        currentBackgroundImage = null;
+        localStorage.removeItem('canvasIOBackground');
+        body.style.background = defaultBackground;
+        body.style.backgroundImage = "none";
+        contextMenu.style.display = "none";
+      });
+
+      // Modal functionality
+      document.getElementById("cancelBtn").addEventListener("click", () => {
+        urlModal.style.display = "none";
+        urlInput.value = "";
+      });
+
+      document.getElementById("applyBtn").addEventListener("click", () => {
+        const imageUrl = urlInput.value.trim();
+        if(imageUrl) {
+          // Test if image loads successfully
+          const img = new Image();
+          img.onload = () => {
+            currentBackgroundImage = imageUrl;
+            localStorage.setItem('canvasIOBackground', imageUrl);
+            body.style.backgroundImage = `url('${imageUrl}')`;
+            body.style.backgroundSize = "cover";
+            body.style.backgroundPosition = "center";
+            body.style.backgroundRepeat = "no-repeat";
+            urlModal.style.display = "none";
+            urlInput.value = "";
+          };
+          img.onerror = () => {
+            alert("Failed to load image. Please check the URL and try again.");
+          };
+          img.src = imageUrl;
+        } else {
+          urlModal.style.display = "none";
+        }
+      });
+
+      // Close modal on escape key
+      document.addEventListener("keydown", (e) => {
+        if(e.key === "Escape") {
+          urlModal.style.display = "none";
+          contextMenu.style.display = "none";
+        }
+      });
+
+      // Apply background on Enter key in modal
+      urlInput.addEventListener("keydown", (e) => {
+        if(e.key === "Enter") {
+          document.getElementById("applyBtn").click();
+        }
+      });
+
+      // Close modal when clicking outside
+      urlModal.addEventListener("click", (e) => {
+        if(e.target === urlModal) {
+          urlModal.style.display = "none";
+          urlInput.value = "";
+        }
+      });
+
+      // Original dragging functionality
       let isDragging = false;
-      let dragOffset = { x: 0, y: 0 };
+      let dragOffset = {x: 0, y: 0};
       const frame = document.getElementById("frame");
 
-      // Get initial position
       const rect = frame.getBoundingClientRect();
       let currentX = rect.left;
       let currentY = rect.top;
 
-      // Set initial position
       frame.style.left = currentX + "px";
       frame.style.top = currentY + "px";
 
       function handleMouseDown(e) {
-        // Don't start dragging if clicking on buttons or canvas
-        if (e.target.classList.contains('btn') || e.target.id === 'canvas') {
+        if(e.target.classList.contains("btn") || e.target.id === "canvas") {
           return;
         }
 
@@ -179,23 +497,22 @@
         const rect = frame.getBoundingClientRect();
         dragOffset.x = e.clientX - rect.left;
         dragOffset.y = e.clientY - rect.top;
-        
-        frame.style.transition = 'none'; // Disable transitions during drag
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+
+        frame.style.transition = "none";
+        document.addEventListener("mousemove", handleMouseMove);
+        document.addEventListener("mouseup", handleMouseUp);
         e.preventDefault();
       }
 
       function handleMouseMove(e) {
-        if (!isDragging) return;
+        if(!isDragging) return;
 
         currentX = e.clientX - dragOffset.x;
         currentY = e.clientY - dragOffset.y;
 
-        // Keep window within viewport bounds
         const maxX = window.innerWidth - frame.offsetWidth;
         const maxY = window.innerHeight - frame.offsetHeight;
-        
+
         currentX = Math.max(0, Math.min(currentX, maxX));
         currentY = Math.max(0, Math.min(currentY, maxY));
 
@@ -205,14 +522,13 @@
 
       function handleMouseUp() {
         isDragging = false;
-        frame.style.transition = ''; // Re-enable transitions
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        frame.style.transition = "";
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
       }
 
-      // Touch support for mobile
       function handleTouchStart(e) {
-        if (e.target.classList.contains('btn') || e.target.id === 'canvas') {
+        if(e.target.classList.contains("btn") || e.target.id === "canvas") {
           return;
         }
 
@@ -221,13 +537,13 @@
         const rect = frame.getBoundingClientRect();
         dragOffset.x = touch.clientX - rect.left;
         dragOffset.y = touch.clientY - rect.top;
-        
-        frame.style.transition = 'none';
+
+        frame.style.transition = "none";
         e.preventDefault();
       }
 
       function handleTouchMove(e) {
-        if (!isDragging) return;
+        if(!isDragging) return;
 
         const touch = e.touches[0];
         currentX = touch.clientX - dragOffset.x;
@@ -235,7 +551,7 @@
 
         const maxX = window.innerWidth - frame.offsetWidth;
         const maxY = window.innerHeight - frame.offsetHeight;
-        
+
         currentX = Math.max(0, Math.min(currentX, maxX));
         currentY = Math.max(0, Math.min(currentY, maxY));
 
@@ -246,19 +562,18 @@
 
       function handleTouchEnd() {
         isDragging = false;
-        frame.style.transition = '';
+        frame.style.transition = "";
       }
 
-      // Add event listeners
-      frame.addEventListener('mousedown', handleMouseDown);
-      frame.addEventListener('touchstart', handleTouchStart);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
+      frame.addEventListener("mousedown", handleMouseDown);
+      frame.addEventListener("touchstart", handleTouchStart);
+      document.addEventListener("touchmove", handleTouchMove);
+      document.addEventListener("touchend", handleTouchEnd);
 
       // Window controls functionality
       document.getElementById("close-btn").addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent dragging
-        if (confirm("Are you sure you want to close the application?")) {
+        e.stopPropagation();
+        if(confirm("Are you sure you want to close the application?")) {
           document.body.style.opacity = "0";
           setTimeout(() => {
             document.body.innerHTML =
@@ -268,7 +583,7 @@
       });
 
       document.getElementById("minimize-btn").addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent dragging
+        e.stopPropagation();
         const canvas = document.getElementById("canvas");
         canvas.style.transform = "scale(0.1)";
         canvas.style.transition = "transform 0.3s ease";
@@ -278,12 +593,11 @@
       });
 
       document.getElementById("maximize-btn").addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent dragging
-        if (frame.style.width === "100vw") {
+        e.stopPropagation();
+        if(frame.style.width === "100vw") {
           frame.style.width = "min(90vw, 800px)";
           frame.style.height = "min(70vh, 600px)";
           frame.style.borderRadius = "12px";
-          // Center the window again
           const rect = frame.getBoundingClientRect();
           currentX = (window.innerWidth - rect.width) / 2;
           currentY = (window.innerHeight - rect.height) / 2;
@@ -304,21 +618,20 @@
         }, 100);
       });
 
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        // Keep window within bounds on resize
+      window.addEventListener("resize", () => {
         const maxX = window.innerWidth - frame.offsetWidth;
         const maxY = window.innerHeight - frame.offsetHeight;
-        
-        if (currentX > maxX) {
+
+        if(currentX > maxX) {
           currentX = Math.max(0, maxX);
           frame.style.left = currentX + "px";
         }
-        if (currentY > maxY) {
+        if(currentY > maxY) {
           currentY = Math.max(0, maxY);
           frame.style.top = currentY + "px";
         }
       });
     </script>
   </body>
+
 </html>
